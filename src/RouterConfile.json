@@ -1,0 +1,18 @@
+{
+  "router": "R1",
+  "link": [
+    "Neighbor1",
+    "Neighbor2",
+    "Neighbor3"
+  ],
+  "routers": [
+    {"source": "R1", "destination(Ip)": "Neighbor1", "distance": 1},
+    {"source": "R1", "destination(Ip)": "Neighbor2", "distance": 2},
+    {"source": "R1", "destination(Ip)": "Neighbor3", "distance": 3}
+  ],
+  "subnets": [
+    {"R1": ["N1", "N2", "N3"]},
+    {"R2": ["N3": "N4"]},
+    {"R3": ["N4": "N5", "N6"]}
+  ]
+}
