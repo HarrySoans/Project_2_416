@@ -1,18 +1,32 @@
+
 {
-  "router": "R1",
-  "link": [
-    "Neighbor1",
-    "Neighbor2",
-    "Neighbor3"
+  "destination": [
+    {"name": "N1"},
+    {"name": "N2"},
+    {"name": "N3"}
   ],
   "routers": [
-    {"source": "R1", "destination(Ip)": "Neighbor1", "distance": 1},
-    {"source": "R1", "destination(Ip)": "Neighbor2", "distance": 2},
-    {"source": "R1", "destination(Ip)": "Neighbor3", "distance": 3}
+    {
+      "name": "R1",
+      "port": 3000,
+      "ip": "192.100.1.1",
+      "neighbor": [
+        {"node1":  "R2"}
+      ]
+
+    },
+    {
+      "name": "R2",
+      "port": 3001,
+      "ip": "192.100.4.1"
+    },
+    {
+      "name": "R3",
+      "port": 3003,
+      "ip": "192.100.3.1"
+    }
   ],
-  "subnets": [
-    {"R1": ["N1", "N2", "N3"]},
-    {"R2": ["N3": "N4"]},
-    {"R3": ["N4": "N5", "N6"]}
+  "neighbors": [
+
   ]
 }
