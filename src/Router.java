@@ -22,42 +22,42 @@ public class Router extends Device {
     }
 
     // Method to initialize the distance vector with the router's directly connected neighbors
-//    public void initializeDistanceVector() {
-//        for (String neighbor : neighbors.keySet()) {
-//            distanceVector.put(neighbor, neighbors.get(neighbor).getOrDefault(name, Integer.MAX_VALUE));
-//            nextHop.put(neighbor, neighbor);
-//        }
-//        distanceVector.put(name, 0); // Distance to self is 0
-//    }
+    public void initializeDistanceVector() {
+        for (String neighbor : neighbors.keySet()) {
+            distanceVector.put(neighbor, neighbors.get(neighbor).getOrDefault(name, Integer.MAX_VALUE));
+            nextHop.put(neighbor, neighbor);
+        }
+        distanceVector.put(name, 0); // Distance to self is 0
+    }
 
     public void setDistanceVector (Map<String, VectorEntry> distVector) {
         this.distanceVector = distVector;
     }
 
     // Method to update the distance vector based on received vectors from neighbors
-//    public void updateDistanceVector() {
-//        for (String destination : distanceVector.keySet()) {
-//            if (!destination.equals(name)) {
-//                int minDistance = Integer.MAX_VALUE;
-//                String minNextHop = destination; // Initially assume direct connection
-//
-//                for (String neighbor : neighbors.keySet()) {
-//                    int distance = neighbors.get(neighbor).getOrDefault(destination, Integer.MAX_VALUE);
-//                    distance += distanceVector.get(neighbor); // Add distance to neighbor
-//
-//                    if (distance < minDistance) {
-//                        minDistance = distance;
-//                        minNextHop = neighbor;
-//                    }
-//                }
-//
-//                if (minDistance < distanceVector.get(destination)) {
-//                    distanceVector.put(destination, minDistance);
-//                    nextHop.put(destination, minNextHop);
-//                }
-//            }
-//        }
-//    }
+    public void updateDistanceVector() {
+        for (String destination : distanceVector.keySet()) {
+            if (!destination.equals(name)) {
+                int minDistance = Integer.MAX_VALUE;
+                String minNextHop = destination; // Initially assume direct connection
+
+                for (String neighbor : neighbors.keySet()) {
+                    int distance = neighbors.get(neighbor).getOrDefault(destination, Integer.MAX_VALUE);
+                    distance += distanceVector.get(neighbor); // Add distance to neighbor
+
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        minNextHop = neighbor;
+                    }
+                }
+
+                if (minDistance < distanceVector.get(destination)) {
+                    distanceVector.put(destination, minDistance);
+                    nextHop.put(destination, minNextHop);
+                }
+            }
+        }
+    }
 
     // Method to periodically update the routing table using the distance vector protocol
     public void startDistanceVectorProtocol(long interval) {

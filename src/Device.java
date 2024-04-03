@@ -28,8 +28,10 @@ public class Device {
 
 
     public String getIp() {
-        return ip;
+        return this.ip;
     }
+
+    public int getPort() {return this.port;}
 
 
 }
