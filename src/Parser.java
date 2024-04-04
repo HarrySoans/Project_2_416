@@ -65,17 +65,17 @@ public class Parser {
                 for(Object node : nodes) {
                     String subnet = (String) node;
                     VectorEntry entry = new VectorEntry(subnet, 0, routerName);
-                    distanceVector.put(subnet, entry);
+                    distanceVector.put(routerName, entry);
                 }
 
                 router.setDistanceVector(distanceVector);
 
+                System.out.println(distanceVector);
+
+
+
             }else {
                 return;
-            }
-
-            for(Object node : nodes) {
-                System.out.println(node);
             }
 
         }
