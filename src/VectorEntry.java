@@ -4,10 +4,10 @@ public class VectorEntry {
     int cost;
     String nextHop;
 
-    VectorEntry(String name, int cost) {
+    VectorEntry(String name, int cost, String nextHop) {
         this.name = name;
         this.cost = cost;
-        this.nextHop = name;
+        this.nextHop = nextHop;
     }
 
     public String getName() {return this.name;}

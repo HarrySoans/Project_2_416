@@ -3,10 +3,10 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class Router extends Device {
+public class Router extends Device  {
     private Map<String, VectorEntry> distanceVector;
+    private Map<String, Map<String, VectorEntry>> neighbors;
     private Map<String, String> nextHop;
-    private Map<String, Map<String, Integer>> neighbors;
 
     public Router(String name, String ip, int port) {
         super(name, ip, port);
@@ -17,17 +17,8 @@ public class Router extends Device {
     }
 
     // Method to add a neighbor and its distance vector
-    public void addNeighbor(String neighborName, Map<String, Integer> neighborVector) {
+    public void addNeighbor(String neighborName, Map<String, VectorEntry> neighborVector) {
         neighbors.put(neighborName, neighborVector);
-    }
-
-    // Method to initialize the distance vector with the router's directly connected neighbors
-    public void initializeDistanceVector() {
-        for (String neighbor : neighbors.keySet()) {
-            distanceVector.put(neighbor, neighbors.get(neighbor).getOrDefault(name, Integer.MAX_VALUE));
-            nextHop.put(neighbor, neighbor);
-        }
-        distanceVector.put(name, 0); // Distance to self is 0
     }
 
     public void setDistanceVector (Map<String, VectorEntry> distVector) {
@@ -42,17 +33,20 @@ public class Router extends Device {
                 String minNextHop = destination; // Initially assume direct connection
 
                 for (String neighbor : neighbors.keySet()) {
-                    int distance = neighbors.get(neighbor).getOrDefault(destination, Integer.MAX_VALUE);
-                    distance += distanceVector.get(neighbor); // Add distance to neighbor
+                    VectorEntry neighborEntry = neighbors.get(neighbor).get(destination);
+                    if(neighborEntry != null) {
+                        int distance = neighborEntry.getCost();
+                        distance += distanceVector.get(neighbor).getCost();
 
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        minNextHop = neighbor;
+                        if(distance < minDistance) {
+                            minDistance = distance;
+                            minNextHop = neighbor;
+                        }
                     }
                 }
 
-                if (minDistance < distanceVector.get(destination)) {
-                    distanceVector.put(destination, minDistance);
+                if (minDistance < distanceVector.get(destination).getCost()) {
+                    distanceVector.put(destination, new VectorEntry(destination, minDistance, minNextHop));
                     nextHop.put(destination, minNextHop);
                 }
             }
@@ -87,23 +81,44 @@ public class Router extends Device {
         Router routerA = new Router("A", "192.168.1", 3000);
         Router routerB = new Router("B", "192.168.1", 3000);
 
+        Map<String, VectorEntry> initalDVectorA = new HashMap<>();
+        VectorEntry v1 = new VectorEntry("N1", 0, routerA.getName());
+        VectorEntry v2 = new VectorEntry("N2", 0, routerB.getName());
+        Map<String, VectorEntry> initalDVectorB = new HashMap<>();
+        VectorEntry v3 = new VectorEntry("N2", 0, routerA.getName());
+        VectorEntry v4 = new VectorEntry("N3", 0, routerB.getName());
+
+        initalDVectorA.put("N1", v1);
+        initalDVectorA.put("N2", v2);
+
+        initalDVectorB.put("N2", v3);
+        initalDVectorB.put("N3", v4);
+
+
+
         // Simulate neighbor routers with their distance vectors
-        Map<String, Integer> neighborVectorA = new HashMap<>();
-        neighborVectorA.put("A", 0);
-        neighborVectorA.put("B", 1);
+        Map<String, VectorEntry> neighborVectorA = new HashMap<>();
+        VectorEntry vecEntry1 = new VectorEntry("N4", 0, "B");
+        VectorEntry vecEntry2 = new VectorEntry("N5", 0, "B");
+        neighborVectorA.put("N4",  vecEntry1);
+        neighborVectorA.put("N5", vecEntry2);
         routerA.addNeighbor("B", neighborVectorA);
 
-        Map<String, Integer> neighborVectorB = new HashMap<>();
-        neighborVectorB.put("A", 1);
-        neighborVectorB.put("B", 0);
+        Map<String, VectorEntry> neighborVectorB = new HashMap<>();
+        VectorEntry vecEntry3 = new VectorEntry("N5", 0, "A");
+        VectorEntry vecEntry4 = new VectorEntry("N6", 0, "A");
+        neighborVectorB.put("N5", vecEntry3);
+        neighborVectorB.put("N6", vecEntry4);
         routerB.addNeighbor("A", neighborVectorB);
 
         // Initialize A and start distance vector protocol
-//        routerA.initializeDistanceVector();
+        routerA.setDistanceVector(initalDVectorA);
+        routerA.updateDistanceVector();
         routerA.startDistanceVectorProtocol(5000); // Update every 5 seconds
 
         // Initialize B and start distance vector protocol
-//        routerB.initializeDistanceVector();
+        routerB.setDistanceVector(initalDVectorB);
+        routerB.updateDistanceVector();
         routerB.startDistanceVectorProtocol(5000); // Update every 5 seconds
     }
 }

@@ -64,20 +64,15 @@ public class Parser {
 
                 for(Object node : nodes) {
                     String subnet = (String) node;
-                    VectorEntry entry = new VectorEntry(routerName, 0);
+                    VectorEntry entry = new VectorEntry(subnet, 0, routerName);
                     distanceVector.put(subnet, entry);
                 }
-
-                System.out.println("Generated distance vector: " + distanceVector);
 
                 router.setDistanceVector(distanceVector);
 
             }else {
                 return;
             }
-
-            System.out.println("Router: " + routerName);
-            System.out.println("Nodes: ");
 
             for(Object node : nodes) {
                 System.out.println(node);
