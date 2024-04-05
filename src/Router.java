@@ -40,16 +40,20 @@ public class Router extends Device  {
             String subnet = node;
             VectorEntry entry = new VectorEntry(subnet, 0, this.name);
             distanceVector.put(subnet, entry);
-            System.out.println(distanceVector);
 
-            for (String key : distanceVector.keySet()) {
-                if (key.equals(subnet)) {
-                    VectorEntry item = distanceVector.get(key);
-                    System.out.printf("Router %s 's  initial distance vector \n", this.name);
-                    System.out.println(item.getName() + " " + item.getCost() + " " + item.getNextHop());
-                }
-            }
+//            for (String key : distanceVector.keySet()) {
+//                if (key.equals(subnet)) {
+//                    VectorEntry item = distanceVector.get(key);
+//                    System.out.printf("Router %s 's  initial distance vector \n", this.name);
+//                    System.out.println(item.getName() + " " + item.getCost() + " " + item.getNextHop());
+//                }
+//            }
         }
+
+//        System.out.println(distanceVector);
+//        System.out.println(neighbors);
+
+
     }
 
 
@@ -78,6 +82,26 @@ public class Router extends Device  {
                     nextHop.put(destination, minNextHop);
                 }
             }
+        }
+    }
+
+    protected void receivePacket(String data) {
+        try {
+            Frame receivedFrame = Frame.deserialize(data);
+            ;
+            String destMac = receivedFrame.getDestMac();
+            String message = receivedFrame.getMessage();
+            String srcMac = receivedFrame.getSrcMac()
+            if (destMac.equals(name)) {
+                // If the frame is intended for this device, print the message
+                System.out.println("Received message: " + message);
+            } else {
+                // Otherwise, ignore the frame
+                System.out.println("Ignoring frame, not intended for this device");
+            }
+        } catch (Exception e) {
+            // Handle any exceptions that occur during frame deserialization or processing
+            e.printStackTrace();
         }
     }
 

@@ -33,6 +33,17 @@ public class Device {
 
     public int getPort() {return this.port;}
 
+    public void constructUDPacket(String destinationIP, int destinationPort, String payload) {
+        try {
+            byte[] sendData = payload.getBytes();
+            DatagramSocket socket = new DatagramSocket();
+            DatagramPacket packet = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(destinationIP), Math.toIntExact(destinationPort));
+            socket.send(packet);
+            System.out.println("Packet sent: " + new String(packet.getData()));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 
 
