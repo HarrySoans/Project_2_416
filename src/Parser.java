@@ -4,12 +4,11 @@ import org.json.simple.parser.JSONParser;
 
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class Parser {
-
+    static List<String> neighbors = new ArrayList<>();
 
     public static JSONObject parseJSONFile(String filename) {
         try {
@@ -22,74 +21,70 @@ public class Parser {
         return null;
     }
 
-    public static List<Router> initRouters(JSONObject data) {
-        JSONArray routers = (JSONArray) data.get("routers");
-        List<Router> computedRouters = new ArrayList<>();
-
-
-        for(Object routerObj : routers) {
-            try {
-                JSONObject routerJSON = (JSONObject) routerObj;
-                int port = ((Long) routerJSON.get("port")).intValue();
-                String ip = (String) routerJSON.get("ip");
-                String name = (String) routerJSON.get("name");
-
-                Router router = new Router(name, ip, port);
-                computedRouters.add(router);
-
-             }catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        //return a list of routers
-        return computedRouters;
-    }
-
-    public static void deriveSubnetsAndGenerateVectorEntries(JSONObject data) {
-        JSONArray subnets = (JSONArray) data.get("subnet");
-        List<Router> routers = initRouters(data);
-        Map<String, VectorEntry> distanceVector = null;
-
-        for(Object subObj : subnets) {
-            JSONObject subnetObj = (JSONObject) subObj;
-            String routerName = (String) subnetObj.keySet().iterator().next();
-            JSONArray nodes = (JSONArray) subnetObj.get(routerName);
-
-            //for each router in our created routers, if the name is the same as the routerName then we want to generate entries inside of that routers distance vector containing each entry found in the array, each entry will be of type VectorEntry.
-            Router router = routers.stream().filter(r -> r.getName().equals(routerName)).findFirst().orElse(null);
-
-            if(router != null) {
-                distanceVector = new HashMap<>();
-
-                for(Object node : nodes) {
-                    String subnet = (String) node;
-                    VectorEntry entry = new VectorEntry(subnet, 0, routerName);
-                    distanceVector.put(routerName, entry);
+    public static List<String> getSubnets(JSONObject data, String routerName) {
+        List<String> subnets = new ArrayList<>();
+        JSONArray arr = (JSONArray) data.get("subnet");
+        for(Object ob:arr) {
+            JSONObject subnetObj = (JSONObject) ob;
+            for(Object key : subnetObj.keySet()) {
+                if(key.equals(routerName)) {
+                    JSONArray subnetsList = (JSONArray) subnetObj.get(routerName);
+                    System.out.println(subnetsList);
+                    for (Object o : subnetsList) {
+                        String node = (String) o;
+                        subnets.add(node);
+                    }
                 }
-
-                router.setDistanceVector(distanceVector);
-
-                System.out.println(distanceVector);
-
-
-
-            }else {
-                return;
             }
-
         }
-
+        return subnets;
     }
+
+    public List<String> getNeighbors(String routerName, JSONObject data) {
+        List<String> neighbors = new ArrayList<>();
+        JSONArray arr = (JSONArray) data.get("neighbor");
+        for(Object ob:arr) {
+            JSONObject neighborObj = (JSONObject) ob;
+            String node1 = (String) neighborObj.get("node1");
+            String node2 = (String) neighborObj.get("node2");
+
+            if (node1.equals(routerName)) {
+                neighbors.add(node2);
+            }
+            if (node2.equals(routerName)) {
+                neighbors.add(node1);
+            }
+        }
+        return neighbors;
+    }
+
+    //Takes in a router name and retrieves IP
+    public String getIpByName(String routerName, JSONObject data) {
+        JSONArray arr = (JSONArray) data.get("routers");
+        String ip = null;
+        if(routerName != null) {
+            for(Object ob:arr) {
+                JSONObject routerObj = (JSONObject) ob;
+                ip = (String) routerObj.get("ip");
+            }
+        }
+        return ip;
+    }
+
+    //Takes in a router name and retrieves Port
+//    public int getPortByName(String routerName) {
+//
+//    }
 
 
     public static void main(String[] args) {
         JSONObject jsonData = parseJSONFile("src/RouterConfig.json");
-        if(jsonData != null) {
-            initRouters(jsonData);
-            deriveSubnetsAndGenerateVectorEntries(jsonData);
-        }else {
-            System.out.println("Failed to parse file");
-        }
+        getSubnets(jsonData, "R1");
+//        if(jsonData != null) {
+//            initRouters(jsonData);
+//            deriveSubnetsAndGenerateVectorEntries(jsonData);
+//        }else {
+//            System.out.println("Failed to parse file");
+//        }
     }
 }
