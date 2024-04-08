@@ -65,26 +65,36 @@ public class Parser {
         if(routerName != null) {
             for(Object ob:arr) {
                 JSONObject routerObj = (JSONObject) ob;
-                ip = (String) routerObj.get("ip");
+                if(routerObj.get("name").equals(routerName)) {
+                    ip = (String) routerObj.get("ip");
+                }
             }
         }
         return ip;
     }
 
     //Takes in a router name and retrieves Port
-//    public int getPortByName(String routerName) {
-//
-//    }
+    public int getPortByName(String routerName, JSONObject data) {
+        JSONArray arr = (JSONArray) data.get("routers");
+        int port = 0;
+        if(routerName != null){
+            for (Object ob : arr) {
+                JSONObject routerObj = (JSONObject) ob;
+                if(routerObj.get("name").equals(routerName)) {
+                    Object portObject = routerObj.get("port");
+                    if (portObject instanceof Number) {
+                        port = ((Number) portObject).intValue();
+                        break;
+                    }
+                }
+            }
+        }
+        return port;
+    }
 
 
     public static void main(String[] args) {
         JSONObject jsonData = parseJSONFile("src/RouterConfig.json");
         getSubnets(jsonData, "R1");
-//        if(jsonData != null) {
-//            initRouters(jsonData);
-//            deriveSubnetsAndGenerateVectorEntries(jsonData);
-//        }else {
-//            System.out.println("Failed to parse file");
-//        }
     }
 }

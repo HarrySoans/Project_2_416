@@ -1,4 +1,6 @@
-public class VectorEntry {
+import java.io.Serializable;
+
+public class VectorEntry implements Serializable {
     //contains name, distance, next hop
     String name;
     int cost;
