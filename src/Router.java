@@ -10,7 +10,7 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.*;
 
-public class Router extends Device implements Runnable  {
+public class Router extends Device implements Runnable {
     private Map<String, VectorEntry> distanceVector;
     private Map<String, Map<String, VectorEntry>> neighbors;
     private Map<String, String> nextHop;
@@ -41,15 +41,15 @@ public class Router extends Device implements Runnable  {
         neighbors.put(neighborName, neighborVector);
     }
 
-    private void initializeNeighbors(String routerName){
+    private void initializeNeighbors(String routerName) {
         List<String> neighborList = parser.getNeighbors(routerName, jsonData);
-        for(String neighborName : neighborList) {
+        for (String neighborName : neighborList) {
             neighbors.put(neighborName, new HashMap<>());
         }
     }
 
     private void initDistanceVector() {
-        for(String node : subnets) {
+        for (String node : subnets) {
             String subnet = node;
             VectorEntry entry = new VectorEntry(subnet, 0, this.name);
             distanceVector.put(subnet, entry);
@@ -57,42 +57,33 @@ public class Router extends Device implements Runnable  {
     }
 
     private void sendDistanceVectorToNeighbors() {
-        for(String neighbor : neighbors.keySet()) {
+        for (String neighbor : neighbors.keySet()) {
             String ip = parser.getIpByName(neighbor, jsonData);
             int port = parser.getPortByName(neighbor, jsonData);
             constructUDPacket(ip, port, this.distanceVector);
-            System.out.println("neigh: " + neighbor + "\n" + "ip: " + ip + "\n" + "port: " + port);
+            System.out.println("neighbor: " + neighbor + "\n" + "ip: " + ip + "\n" + "port: " + port);
         }
     }
 
 
     // Method to update the distance vector based on received vectors from neighbors
-    public void updateDistanceVector () {
-        for (String destination : distanceVector.keySet()) {
-            if (!destination.equals(name)) {
-                int minDistance = Integer.MAX_VALUE;
-                String minNextHop = destination; // Initially assume direct connection
+    public void updateDistanceVector(Map<String, Map<String, VectorEntry>> incomingDistanceVectors) {
+        for (String neighbor : incomingDistanceVectors.keySet()) {
+            if (neighbors.containsKey(neighbor)) {
+                for (Map<String, VectorEntry> entryMap : incomingDistanceVectors.values()) {
+                    for (VectorEntry entry : entryMap.values()) {
+                        String subnet = entry.getName();
+                        int cost = entry.getCost();
 
-                for (String neighbor : neighbors.keySet()) {
-                    VectorEntry neighborEntry = neighbors.get(neighbor).get(destination);
-                    if(neighborEntry != null) {
-                        int distance = neighborEntry.getCost();
-                        distance += distanceVector.get(neighbor).getCost();
-
-                        if(distance < minDistance) {
-                            minDistance = distance;
-                            minNextHop = neighbor;
+                        if (!distanceVector.containsKey(subnet)) {
+                            distanceVector.put(subnet, new VectorEntry(subnet, cost + 1, neighbor));
                         }
                     }
-                }
-
-                if (minDistance < distanceVector.get(destination).getCost()) {
-                    distanceVector.put(destination, new VectorEntry(destination, minDistance, minNextHop));
-                    nextHop.put(destination, minNextHop);
                 }
             }
         }
     }
+
 
     private void receivePackets() {
         byte[] buffer = new byte[1024];
@@ -138,20 +129,50 @@ public class Router extends Device implements Runnable  {
     public void printRoutingTable() {
         System.out.println("Routing table for Router " + name + ":");
         for (String destination : distanceVector.keySet()) {
-            System.out.println("Destination: " + destination + ", Next Hop: " + nextHop.get(destination) +
-                    ", Distance: " + distanceVector.get(destination));
+            VectorEntry dv = distanceVector.get(destination);
+            String nexHop = dv.getNextHop();
+            String cost = String.valueOf(dv.getCost());
+
+
+            System.out.println("Destination: " + destination + ", Next Hop: " + nexHop +
+                    ", Distance: " + cost);
         }
         System.out.println();
     }
 
     // Example main method for testing
     public static void main(String[] args) throws SocketException {
-//        Router r1 = new Router("R1", "192.168.1", 3000);
-//        Thread routerThread = new Thread(r1);
-//        routerThread.start();
-        Router r2 = new Router("R2", "192.100.4.1", 3001);
-        Thread routerThread2 = new Thread(r2);
-        routerThread2.start();
+        Router r1 = new Router("R1", "192.168.1", 3000);
+        Thread routerThread = new Thread(r1);
+        routerThread.start();
+//        Router r2 = new Router("R2", "192.100.4.1", 3001);
+//        Thread routerThread2 = new Thread(r2);
+//        routerThread2.start();
+
+        Map<String, Map<String, VectorEntry>> incomingDistanceVectors = new HashMap<>();
+
+        Map<String, VectorEntry> neighbor1DistanceVector = new HashMap<>();
+        neighbor1DistanceVector.put("N3", new VectorEntry("N3", 0, "R2")); // Example entry
+        neighbor1DistanceVector.put("N4", new VectorEntry("N4", 0, "R2")); // Example entry
+
+        incomingDistanceVectors.put("R2", neighbor1DistanceVector);
+
+        r1.updateDistanceVector(incomingDistanceVectors);
+
+        System.out.println(r1.distanceVector);
+
+
+//        for (Map.Entry<String, Map<String, VectorEntry>> entry : incomingDistanceVectors.entrySet()) {
+//            System.out.println("Router: " + entry.getKey());
+//            Map<String, VectorEntry> distanceVector = entry.getValue();
+//            for (Map.Entry<String, VectorEntry> vectorEntry : distanceVector.entrySet()) {
+//                System.out.println("Destination: " + vectorEntry.getKey() +
+//                        ", Cost: " + vectorEntry.getValue().getCost() +
+//                        ", Next Hop: " + vectorEntry.getValue().getNextHop());
+//            }
+//            System.out.println();
+//        }
+
 
 //        new Router("R2", "192.168.1", 3001);
     }
