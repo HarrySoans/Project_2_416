@@ -2,38 +2,28 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.w3c.dom.ls.LSOutput;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.SocketException;
+import java.io.*;
+import java.net.*;
 import java.util.*;
 
-public class Router extends Device implements Runnable {
-    private Map<String, VectorEntry> distanceVector;
+public class Router extends Device {
+    DistanceVector distanceVector;
     private Map<String, Map<String, VectorEntry>> neighbors;
     private Map<String, String> nextHop;
     private final List<String> subnets;
     JSONObject jsonData = Parser.parseJSONFile("src/RouterConfig.json");
     Parser parser = new Parser();
-    private final DatagramSocket socket;
 
-    public Router(String name, String ip, int port) throws SocketException {
+
+    public Router(String name, String ip, int port) {
         super(name, ip, port);
-        this.distanceVector = new HashMap<>();
+        this.distanceVector = new DistanceVector(this.name, new HashMap<>());
         this.nextHop = new HashMap<>();
         this.neighbors = new HashMap<>();
         this.subnets = Parser.getSubnets(jsonData, this.name);
-        this.socket = new DatagramSocket(port);
         initializeNeighbors(this.name);
         initDistanceVector();
-    }
-
-    public void run() {
         sendDistanceVectorToNeighbors();
-        startDistanceVectorProtocol(5000);
-        receivePackets();
     }
 
     // Method to add a neighbor and its distance vector
@@ -52,7 +42,7 @@ public class Router extends Device implements Runnable {
         for (String node : subnets) {
             String subnet = node;
             VectorEntry entry = new VectorEntry(subnet, 0, this.name);
-            distanceVector.put(subnet, entry);
+            distanceVector.addEntry(subnet, entry);
         }
     }
 
@@ -60,56 +50,84 @@ public class Router extends Device implements Runnable {
         for (String neighbor : neighbors.keySet()) {
             String ip = parser.getIpByName(neighbor, jsonData);
             int port = parser.getPortByName(neighbor, jsonData);
-            constructUDPacket(ip, port, this.distanceVector);
-            System.out.println("neighbor: " + neighbor + "\n" + "ip: " + ip + "\n" + "port: " + port);
+            constructUDPacket("localhost", port, distanceVector);
         }
     }
 
+    private DatagramPacket packetReceiver() {
+        DatagramPacket finalMess = null;
+        System.out.println("waiting...");
+        try {
+            DatagramSocket socket = new DatagramSocket(this.port);
+            byte[] receiveData = new byte[1024];
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+            socket.receive(receivePacket);
+            finalMess = receivePacket;
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return finalMess;
+    }
+
+    public void constructUDPacket(String destinationIP, int destinationPort, DistanceVector payload) {
+        try {
+            DatagramSocket socket = new DatagramSocket();
+            InetAddress address = InetAddress.getByName(destinationIP);
+            String stringified = payload.toString();
+            byte[] sendData = stringified.getBytes();
+            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, address, destinationPort);
+            socket.send(sendPacket);
+            socket.close();
+            System.out.println("packet sent");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     // Method to update the distance vector based on received vectors from neighbors
-    public void updateDistanceVector(Map<String, Map<String, VectorEntry>> incomingDistanceVectors) {
-        for (String neighbor : incomingDistanceVectors.keySet()) {
-            if (neighbors.containsKey(neighbor)) {
-                for (Map<String, VectorEntry> entryMap : incomingDistanceVectors.values()) {
-                    for (VectorEntry entry : entryMap.values()) {
-                        String subnet = entry.getName();
-                        int cost = entry.getCost();
+    public boolean updateDistanceVector(DistanceVector incomingDistanceVectors) {
+        boolean isUpdated = false;
+        for (VectorEntry entry : incomingDistanceVectors.getDV().values()) {
+            String subnet = entry.getName();
+            int cost = entry.getCost();
+            Map<String, VectorEntry> dv = distanceVector.getDV();
 
-                        if (!distanceVector.containsKey(subnet)) {
-                            distanceVector.put(subnet, new VectorEntry(subnet, cost + 1, neighbor));
-                        }
-                    }
+            if (!dv.containsKey(subnet)) {
+                distanceVector.addEntry(subnet, new VectorEntry(subnet, cost + 1, incomingDistanceVectors.getSenderName()));
+                isUpdated = true;
+            }else {
+                // check shorter distance
+                if((cost + 1) < distanceVector.getDV().get(subnet).cost) {
+                    distanceVector.addEntry(subnet, new VectorEntry(subnet, cost + 1, incomingDistanceVectors.getSenderName()));
+                    isUpdated = true;
                 }
             }
         }
+        return isUpdated;
     }
 
 
-    private void receivePackets() {
-        byte[] buffer = new byte[1024];
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-        while (true) {
-            try {
-                socket.receive(packet);
-                receivePacket(packet);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    protected void receivePacket(DatagramPacket packet) {
+    protected DistanceVector receivePacket(DatagramPacket packet) {
+        DistanceVector receivedVector = null;
         try {
             byte[] receivedData = packet.getData();
-            ByteArrayInputStream bais = new ByteArrayInputStream(receivedData);
-            ObjectInputStream ois = new ObjectInputStream(bais);
-            Map<String, VectorEntry> receivedVector = (Map<String, VectorEntry>) ois.readObject();
-            ois.close();
-            System.out.printf("Received: %s", receivedVector);
+            String dv = new String(receivedData, 0, packet.getLength());
+            String[] lines = dv.split("\n");
+            String senderName = lines[0].substring(lines[0].indexOf(":") + 1).trim();
+            Map<String, VectorEntry> distanceVector = new HashMap<>();
+            for (int i = 2; i < lines.length; i++) {
+                String[] parts = lines[i].trim().split(":");
+                String subnet = parts[1].trim().split(",")[0].trim();
+                VectorEntry entry = VectorEntry.parseVectorEntry(parts[2].trim());
+                distanceVector.put(subnet, entry);
+            }
+            receivedVector = new DistanceVector(senderName, distanceVector);
+
         } catch (Exception e) {
-            // Handle any exceptions that occur during frame deserialization or processing
             e.printStackTrace();
         }
+        return receivedVector;
     }
 
     // Method to periodically update the routing table using the distance vector protocol
@@ -128,8 +146,8 @@ public class Router extends Device implements Runnable {
     // Method to print the routing table
     public void printRoutingTable() {
         System.out.println("Routing table for Router " + name + ":");
-        for (String destination : distanceVector.keySet()) {
-            VectorEntry dv = distanceVector.get(destination);
+        for (String destination : distanceVector.getDV().keySet()) {
+            VectorEntry dv = distanceVector.getDV().get(destination);
             String nexHop = dv.getNextHop();
             String cost = String.valueOf(dv.getCost());
 
@@ -141,40 +159,25 @@ public class Router extends Device implements Runnable {
     }
 
     // Example main method for testing
-    public static void main(String[] args) throws SocketException {
-        Router r1 = new Router("R1", "192.168.1", 3000);
-        Thread routerThread = new Thread(r1);
-        routerThread.start();
-//        Router r2 = new Router("R2", "192.100.4.1", 3001);
-//        Thread routerThread2 = new Thread(r2);
-//        routerThread2.start();
+    public static void main(String[] args) throws IOException {
+        Router r1 = new Router("R1", "localhost", 3000);
 
-        Map<String, Map<String, VectorEntry>> incomingDistanceVectors = new HashMap<>();
+        Router r2 = new Router("R2", "localhost", 3001);
 
-        Map<String, VectorEntry> neighbor1DistanceVector = new HashMap<>();
-        neighbor1DistanceVector.put("N3", new VectorEntry("N3", 0, "R2")); // Example entry
-        neighbor1DistanceVector.put("N4", new VectorEntry("N4", 0, "R2")); // Example entry
+        r2.startDistanceVectorProtocol(3000);
+        r2.printRoutingTable();
 
-        incomingDistanceVectors.put("R2", neighbor1DistanceVector);
-
-        r1.updateDistanceVector(incomingDistanceVectors);
-
-        System.out.println(r1.distanceVector);
-
-
-//        for (Map.Entry<String, Map<String, VectorEntry>> entry : incomingDistanceVectors.entrySet()) {
-//            System.out.println("Router: " + entry.getKey());
-//            Map<String, VectorEntry> distanceVector = entry.getValue();
-//            for (Map.Entry<String, VectorEntry> vectorEntry : distanceVector.entrySet()) {
-//                System.out.println("Destination: " + vectorEntry.getKey() +
-//                        ", Cost: " + vectorEntry.getValue().getCost() +
-//                        ", Next Hop: " + vectorEntry.getValue().getNextHop());
-//            }
-//            System.out.println();
-//        }
-
-
-//        new Router("R2", "192.168.1", 3001);
+        while(true) {
+            r1.packetReceiver();
+            DatagramPacket packet = r1.packetReceiver();
+            DistanceVector newDV = r1.receivePacket(packet);
+            boolean isUpdated = r1.updateDistanceVector(newDV);
+            System.out.println(newDV);
+            r1.startDistanceVectorProtocol(3000);
+            if(isUpdated) {
+                r1.sendDistanceVectorToNeighbors();
+            }
+        }
     }
 }
 
