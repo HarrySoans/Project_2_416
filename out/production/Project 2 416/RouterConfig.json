@@ -23,17 +23,17 @@
     {
       "name": "R1",
       "port": 3000,
-      "ip": "192.100.1.1"
+      "ip": "localhost"
     },
     {
       "name": "R2",
       "port": 3001,
-      "ip": "192.100.4.1"
+      "ip": "localhost"
     },
     {
       "name": "R3",
       "port": 3003,
-      "ip": "192.100.3.1"
+      "ip": "localhost"
     }
   ],
   "neighbor": [
