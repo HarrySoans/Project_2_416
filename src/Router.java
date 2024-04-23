@@ -7,6 +7,9 @@ import java.net.*;
 import java.util.*;
 
 public class Router extends Device {
+
+    String ip;
+    int port;
     DistanceVector distanceVector;
     private Map<String, Map<String, VectorEntry>> neighbors;
     private Map<String, String> nextHop;
@@ -15,8 +18,10 @@ public class Router extends Device {
     Parser parser = new Parser();
 
 
-    public Router(String name, String ip, int port) {
-        super(name, ip, port);
+    public Router(String name) {
+        super(name);
+        this.ip = parser.getIpByName(name, jsonData);
+        this.port = parser.getPortByName(name, jsonData);
         this.distanceVector = new DistanceVector(this.name, new HashMap<>());
         this.nextHop = new HashMap<>();
         this.neighbors = new HashMap<>();
@@ -50,7 +55,7 @@ public class Router extends Device {
         for (String neighbor : neighbors.keySet()) {
             String ip = parser.getIpByName(neighbor, jsonData);
             int port = parser.getPortByName(neighbor, jsonData);
-            constructUDPacket("localhost", port, distanceVector);
+            constructUDPacket(ip, port, distanceVector);
         }
     }
 
@@ -160,12 +165,7 @@ public class Router extends Device {
 
     // Example main method for testing
     public static void main(String[] args) throws IOException {
-        Router r1 = new Router("R1", "localhost", 3000);
-
-        Router r2 = new Router("R2", "localhost", 3001);
-
-        r2.startDistanceVectorProtocol(3000);
-        r2.printRoutingTable();
+        Router r1 = new Router(args[0]);
 
         while(true) {
             r1.packetReceiver();
