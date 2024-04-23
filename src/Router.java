@@ -29,6 +29,7 @@ public class Router extends Device {
         initializeNeighbors(this.name);
         initDistanceVector();
         sendDistanceVectorToNeighbors();
+        startDistanceVectorProtocol(5000);
     }
 
     // Method to add a neighbor and its distance vector
@@ -128,6 +129,8 @@ public class Router extends Device {
                 distanceVector.put(subnet, entry);
             }
             receivedVector = new DistanceVector(senderName, distanceVector);
+
+            System.out.println(receivedVector.senderName);
 
         } catch (Exception e) {
             e.printStackTrace();
