@@ -14,7 +14,7 @@ public class Router extends Device {
     private Map<String, Map<String, VectorEntry>> neighbors;
     private Map<String, String> nextHop;
     private final List<String> subnets;
-    JSONObject jsonData = Parser.parseJSONFile("src/RouterConfig.json");
+    JSONObject jsonData = Parser.parseJSONFile("src/RouterConfig2.json");
     Parser parser = new Parser();
 
 
