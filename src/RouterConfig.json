@@ -21,19 +21,19 @@
   ],
   "routers": [
     {
-      "name": "R1",
+      "name": "R2",
       "port": 3000,
       "ip": "10.222.21.229"
     },
     {
-      "name": "R2",
+      "name": "R1",
       "port": 3001,
       "ip": "10.222.76.32"
     },
     {
       "name": "R3",
       "port": 3003,
-      "ip": "localhost"
+      "ip": "10.222.42.80"
     }
   ],
   "neighbor": [

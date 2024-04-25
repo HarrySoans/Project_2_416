@@ -171,7 +171,6 @@ public class Router extends Device {
         Router r1 = new Router(args[0]);
 
         while(true) {
-            r1.packetReceiver();
             DatagramPacket packet = r1.packetReceiver();
             DistanceVector newDV = r1.receivePacket(packet);
             boolean isUpdated = r1.updateDistanceVector(newDV);
